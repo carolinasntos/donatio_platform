@@ -1,0 +1,87 @@
+{
+  "name": "Donation",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string"
+    },
+    "donor_id": {
+      "type": "string"
+    },
+    "amount_mxn": {
+      "type": "number",
+      "description": "Monto en pesos MXN"
+    },
+    "amount_uma": {
+      "type": "number",
+      "description": "Equivalente en UMAs"
+    },
+    "donation_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "transferencia",
+        "cheque",
+        "tarjeta",
+        "efectivo",
+        "otro"
+      ],
+      "default": "transferencia"
+    },
+    "description": {
+      "type": "string"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Referencia o folio"
+    },
+    "receipt_url": {
+      "type": "string"
+    },
+    "accumulated_6m_at_donation": {
+      "type": "number",
+      "description": "Acumulado rolling 6m al momento del donativo"
+    },
+    "accumulated_uma_6m": {
+      "type": "number"
+    },
+    "threshold_triggered": {
+      "type": "string",
+      "enum": [
+        "none",
+        "identification",
+        "notice"
+      ],
+      "default": "none"
+    },
+    "is_manual_entry": {
+      "type": "boolean",
+      "default": false
+    },
+    "entry_notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "registered",
+        "blocked",
+        "cancelled"
+      ],
+      "default": "registered"
+    },
+    "compliance_case_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "organization_id",
+    "donor_id",
+    "amount_mxn",
+    "donation_date",
+    "payment_method"
+  ]
+}

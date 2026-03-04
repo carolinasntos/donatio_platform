@@ -1,0 +1,79 @@
+{
+  "name": "Alert",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string"
+    },
+    "donor_id": {
+      "type": "string"
+    },
+    "donation_id": {
+      "type": "string"
+    },
+    "compliance_case_id": {
+      "type": "string"
+    },
+    "alert_type": {
+      "type": "string",
+      "enum": [
+        "cash_detected",
+        "incomplete_info",
+        "notice_overdue",
+        "risk_evaluation_pending",
+        "reputation_flag",
+        "threshold_identification",
+        "threshold_notice",
+        "document_expired",
+        "aviso_deadline_approaching"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "acknowledged",
+        "resolved",
+        "dismissed"
+      ],
+      "default": "active"
+    },
+    "acknowledged_by": {
+      "type": "string"
+    },
+    "acknowledged_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolved_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "auto_generated": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "organization_id",
+    "alert_type",
+    "severity",
+    "title"
+  ]
+}

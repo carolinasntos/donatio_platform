@@ -1,0 +1,90 @@
+{
+  "name": "ComplianceCase",
+  "type": "object",
+  "properties": {
+    "organization_id": {
+      "type": "string"
+    },
+    "donor_id": {
+      "type": "string"
+    },
+    "case_type": {
+      "type": "string",
+      "enum": [
+        "identification",
+        "aviso_sat"
+      ],
+      "default": "aviso_sat"
+    },
+    "threshold_triggered": {
+      "type": "string",
+      "enum": [
+        "identification",
+        "notice"
+      ]
+    },
+    "threshold_uma": {
+      "type": "number"
+    },
+    "accumulated_mxn": {
+      "type": "number"
+    },
+    "accumulated_uma": {
+      "type": "number"
+    },
+    "trigger_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "deadline_date": {
+      "type": "string",
+      "format": "date",
+      "description": "D\u00eda 17 del mes siguiente"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_preparation",
+        "captured_sat",
+        "presented",
+        "closed",
+        "overdue"
+      ],
+      "default": "pending"
+    },
+    "sat_folio": {
+      "type": "string"
+    },
+    "evidence_url": {
+      "type": "string"
+    },
+    "presented_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "assigned_to": {
+      "type": "string"
+    },
+    "appleseed_notes": {
+      "type": "string"
+    },
+    "risk_evaluation_done": {
+      "type": "boolean",
+      "default": false
+    },
+    "template_generated": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "organization_id",
+    "donor_id",
+    "case_type",
+    "trigger_date"
+  ]
+}

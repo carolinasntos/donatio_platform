@@ -1,0 +1,90 @@
+{
+  "name": "Organization",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre/Raz\u00f3n social de la OSC"
+    },
+    "rfc": {
+      "type": "string",
+      "description": "RFC de la organizaci\u00f3n"
+    },
+    "moral_type": {
+      "type": "string",
+      "enum": [
+        "Asociaci\u00f3n Civil",
+        "Sociedad Civil",
+        "Fundaci\u00f3n",
+        "Instituto",
+        "Otro"
+      ]
+    },
+    "address": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "zip_code": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "legal_rep_name": {
+      "type": "string",
+      "description": "Nombre del representante legal"
+    },
+    "legal_rep_rfc": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "suspended"
+      ],
+      "default": "active"
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "trial",
+        "basic",
+        "professional",
+        "enterprise"
+      ],
+      "default": "trial"
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "uma_config_id": {
+      "type": "string"
+    },
+    "risk_profile": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "low"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "rfc"
+  ]
+}
