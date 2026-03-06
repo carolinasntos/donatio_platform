@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Search, Upload, CheckCircle2, XCircle, Clock, FileText, Eye, Trash2 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { DOCUMENT_TYPES, checkDocumentCompleteness, formatCurrency } from "@/components/amlEngine";
@@ -23,33 +23,65 @@ export default function OSCExpedientes() {
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    setLoading(true);
-    const [dl, docs] = await Promise.all([
-      base44.entities.Donor.list("-created_date", 200),
-      base44.entities.DonorDocument.list("-created_date", 500),
-    ]);
-    setDonors(dl);
-    setDocuments(docs);
-    if (dl.length > 0 && !selectedDonor) setSelectedDonor(dl[0]);
-    setLoading(false);
-  }
+  setLoading(true);
+
+  const [donorRes, docsRes] = await Promise.all([
+    supabase
+      .from("donors")
+      .select("*")
+      .order("created_date", { ascending: false })
+      .limit(200),
+
+    supabase
+      .from("donor_documents")
+      .select("*")
+      .order("created_date", { ascending: false })
+      .limit(500),
+  ]);
+
+  if (donorRes.data) setDonors(donorRes.data);
+  if (docsRes.data) setDocuments(docsRes.data);
+
+  if (donorRes.data?.length && !selectedDonor)
+    setSelectedDonor(donorRes.data[0]);
+
+  setLoading(false);
+}
 
   async function handleUpload(e) {
     e.preventDefault();
     if (!file || !selectedDonor) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    await base44.entities.DonorDocument.create({
-      donor_id: selectedDonor.id,
-      organization_id: selectedDonor.organization_id,
-      document_type: uploadForm.document_type,
-      document_name: file.name,
-      file_url,
-      upload_date: new Date().toISOString().split("T")[0],
-      expiry_date: uploadForm.expiry_date || null,
-      notes: uploadForm.notes,
-      status: "pending",
-    });
+    const fileName = `${Date.now()}_${file.name}`;
+
+const { error: uploadError } = await supabase.storage
+  .from("donor-documents")
+  .upload(fileName, file);
+
+if (uploadError) {
+  console.error(uploadError);
+  return;
+}
+
+const { data: urlData } = supabase.storage
+  .from("donor-documents")
+  .getPublicUrl(fileName);
+
+const file_url = urlData.publicUrl;
+    await supabase
+  .from("donor_documents")
+  .insert({
+    donor_id: selectedDonor.id,
+    organization_id: selectedDonor.organization_id,
+    document_type: uploadForm.document_type,
+    document_name: file.name,
+    file_url: file_url,
+    upload_date: new Date().toISOString().split("T")[0],
+    expiry_date: uploadForm.expiry_date || null,
+    notes: uploadForm.notes,
+    status: "pending",
+    is_verified: false
+  });
     setShowUpload(false);
     setFile(null);
     setUploadForm({ document_type: "", expiry_date: "", notes: "" });
@@ -58,18 +90,27 @@ export default function OSCExpedientes() {
   }
 
   async function verifyDocument(docId) {
-    const user = await base44.auth.me();
-    await base44.entities.DonorDocument.update(docId, {
+
+  const { data: userData } = await supabase.auth.getUser();
+
+  await supabase
+    .from("donor_documents")
+    .update({
       is_verified: true,
-      verified_by: user.email,
+      verified_by: userData.user.email,
       verified_date: new Date().toISOString().split("T")[0],
       status: "valid"
-    });
-    loadData();
-  }
+    })
+    .eq("id", docId);
+
+  loadData();
+}
 
   async function deleteDocument(docId) {
-    await base44.entities.DonorDocument.delete(docId);
+    await supabase
+  .from("donor_documents")
+  .delete()
+  .eq("id", docId);
     loadData();
   }
 

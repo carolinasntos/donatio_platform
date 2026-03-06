@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Send, Bot, User, AlertTriangle, RefreshCw } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,11 @@ export default function OSCChatbot() {
     const history = messages.map(m => `${m.role === "user" ? "Usuario" : "Asistente"}: ${m.content}`).join("\n");
     const prompt = `${SYSTEM_PROMPT}\n\nHistorial de conversación:\n${history}\n\nUsuario: ${userMsg}\n\nAsistente:`;
 
-    const response = await base44.integrations.Core.InvokeLLM({ prompt });
+    const { data, error } = await supabase.functions.invoke("aml-chatbot", {
+  body: { prompt }
+});
+
+const response = data?.text || "No pude generar respuesta.";
     setMessages(prev => [...prev, { role: "assistant", content: response }]);
     setLoading(false);
   }

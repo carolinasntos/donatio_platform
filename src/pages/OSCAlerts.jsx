@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { AlertTriangle, AlertCircle, CheckCircle2, Bell, Filter } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import AlertBadge from "@/components/shared/AlertBadge";
@@ -20,32 +20,49 @@ export default function OSCAlerts() {
 
   async function loadData() {
     setLoading(true);
-    const [al, dl] = await Promise.all([
-      base44.entities.Alert.list("-created_date", 200),
-      base44.entities.Donor.list("-created_date", 200),
-    ]);
-    setAlerts(al);
-    setDonors(dl);
+    const [alertsRes, donorsRes] = await Promise.all([
+  supabase
+    .from("Alert")
+    .select("*")
+    .order("created_date", { ascending: false })
+    .limit(200),
+
+  supabase
+    .from("Donor")
+    .select("*")
+    .order("created_date", { ascending: false })
+    .limit(200)
+]);
+
+setAlerts(alertsRes.data || []);
+setDonors(donorsRes.data || []);
     setLoading(false);
   }
 
   async function acknowledge(alertId) {
     setAcknowledging(alertId);
-    const user = await base44.auth.me();
-    await base44.entities.Alert.update(alertId, {
-      status: "acknowledged",
-      acknowledged_by: user.email,
-      acknowledged_date: new Date().toISOString()
-    });
+    const { data: { user } } = await supabase.auth.getUser();
+
+await supabase
+  .from("Alert")
+  .update({
+    status: "acknowledged",
+    acknowledged_by: user.email,
+    acknowledged_date: new Date().toISOString()
+  })
+  .eq("id", alertId);
     setAcknowledging(null);
     loadData();
   }
 
   async function resolve(alertId) {
-    await base44.entities.Alert.update(alertId, {
-      status: "resolved",
-      resolved_date: new Date().toISOString()
-    });
+    await supabase
+  .from("Alert")
+  .update({
+    status: "resolved",
+    resolved_date: new Date().toISOString()
+  })
+  .eq("id", alertId);
     loadData();
   }
 

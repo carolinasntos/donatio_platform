@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Plus, Search, MessageSquare, Clock, CheckCircle2 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -21,38 +21,66 @@ export default function AdminTickets() {
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    setLoading(true);
-    const [tl, ol] = await Promise.all([
-      base44.entities.SupportTicket.list("-created_date", 100),
-      base44.entities.Organization.list("-created_date", 100),
-    ]);
-    setTickets(tl);
-    setOrgs(ol);
-    setLoading(false);
-  }
+  setLoading(true);
+
+  const [
+    { data: tl },
+    { data: ol }
+  ] = await Promise.all([
+    supabase
+      .from("support_tickets")
+      .select("*")
+      .order("created_date", { ascending: false })
+      .limit(100),
+
+    supabase
+      .from("organizations")
+      .select("*")
+      .order("created_date", { ascending: false })
+      .limit(100)
+  ]);
+
+  setTickets(tl || []);
+  setOrgs(ol || []);
+  setLoading(false);
+}
 
   async function createTicket(e) {
     e.preventDefault();
-    await base44.entities.SupportTicket.create({ ...form, notes: [] });
-    setShowNew(false);
+    await supabase
+  .from("support_tickets")
+  .insert([{ ...form, notes: [] }]);
     setForm({ title: "", description: "", category: "compliance", priority: "medium", organization_id: "" });
     loadData();
   }
 
   async function addNote(ticketId) {
     if (!note.trim()) return;
-    const user = await base44.auth.me();
     const ticket = tickets.find(t => t.id === ticketId);
-    const existingNotes = ticket?.notes || [];
-    await base44.entities.SupportTicket.update(ticketId, {
-      notes: [...existingNotes, { author: user.email, text: note, date: new Date().toISOString() }]
-    });
+const existingNotes = ticket?.notes || [];
+
+await supabase
+  .from("support_tickets")
+  .update({
+    notes: [
+      ...existingNotes,
+      {
+        author: "admin",
+        text: note,
+        date: new Date().toISOString()
+      }
+    ]
+  })
+  .eq("id", ticketId);
     setNote("");
     loadData();
   }
 
   async function updateStatus(ticketId, status) {
-    await base44.entities.SupportTicket.update(ticketId, { status });
+    await supabase
+  .from("support_tickets")
+  .update({ status })
+  .eq("id", ticketId);
     loadData();
   }
 

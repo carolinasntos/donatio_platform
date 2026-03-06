@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Heart, Shield, FileText, AlertCircle, CheckCircle2, User, Building2, ArrowRight } from "lucide-react";
@@ -20,43 +20,107 @@ export default function DonorPortal() {
   const [donateForm, setDonateForm] = useState({ amount_mxn: "", description: "", payment_method: "transferencia" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [registerForm, setRegisterForm] = useState({ donor_type: "fisica", full_name: "", rfc: "", email: "", phone: "", address: "", city: "", state: "" });
+  const [registerForm, setRegisterForm] = useState({ donor_type: "fisica", full_name: "", rfc: "", email: "", phone: "", address: "", city: "", state: "", password: "",});
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+  // al montar: intenta cargar una vez
+  loadData();
+
+  const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    setUser(session?.user ?? null);
+  });
+
+  return () => listener.subscription.unsubscribe();
+}, []);
+
+useEffect(() => {
+  // cada vez que cambia user, vuelve a cargar donor/donations/docs
+  loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [user?.email]);
 
   async function loadData() {
-    setLoading(true);
-    const u = await base44.auth.me().catch(() => null);
-    setUser(u);
-    if (u) {
-      const donors = await base44.entities.Donor.filter({ portal_user_email: u.email }, "-created_date", 1).catch(() => []);
-      if (donors.length > 0) {
-        setDonor(donors[0]);
-        const [dons, docs] = await Promise.all([
-          base44.entities.Donation.filter({ donor_id: donors[0].id }, "-donation_date", 20),
-          base44.entities.DonorDocument.filter({ donor_id: donors[0].id }, "-created_date", 20),
-        ]);
-        setDonations(dons);
-        setDocuments(docs);
-      }
-    }
+  setLoading(true);
+
+  const { data: { user } } = await supabase.auth.getUser();
+  setUser(user);
+
+  // ✅ si no hay sesión, limpia y sal
+  if (!user) {
+    setDonor(null);
+    setDonations([]);
+    setDocuments([]);
     setLoading(false);
+    return;
   }
+
+  // ✅ busca donor por email del usuario autenticado
+  const { data: donors, error: donorErr } = await supabase
+    .from("donors")
+    .select("*")
+    .eq("email", user.email)
+    .limit(1);
+
+  if (donorErr) {
+    console.error("LOAD DONOR ERROR:", donorErr);
+    setDonor(null);
+    setDonations([]);
+    setDocuments([]);
+    setLoading(false);
+    return;
+  }
+
+  if (!donors || donors.length === 0) {
+    // usuario autenticado pero aún no existe en donors
+    setDonor(null);
+    setDonations([]);
+    setDocuments([]);
+    setLoading(false);
+    return;
+  }
+
+  const d = donors[0];
+  setDonor(d);
+
+  // ✅ carga donations y documents del donor
+  const [donationsRes, documentsRes] = await Promise.all([
+    supabase
+      .from("donations")
+      .select("*")
+      .eq("donor_id", d.id)
+      .order("donation_date", { ascending: false })
+      .limit(20),
+
+    supabase
+      .from("donor_documents")
+      .select("*")
+      .eq("donor_id", d.id)
+      .order("created_date", { ascending: false })
+      .limit(20),
+  ]);
+
+  setDonations(donationsRes.data || []);
+  setDocuments(documentsRes.data || []);
+
+  setLoading(false);
+}
 
   async function handleDonate(e) {
     e.preventDefault();
     if (donateForm.payment_method === "efectivo") return;
     if (!donor) return;
     setSaving(true);
-    await base44.entities.Donation.create({
-      donor_id: donor.id,
-      organization_id: donor.organization_id,
-      amount_mxn: parseFloat(donateForm.amount_mxn),
-      donation_date: new Date().toISOString().split("T")[0],
-      payment_method: donateForm.payment_method,
-      description: donateForm.description,
-      status: "registered",
-    });
+    await supabase.from("donations").insert({
+  donor_id: donor.id,
+  organization_id: donor.organization_id,
+  amount_mxn: parseFloat(donateForm.amount_mxn),
+  donation_date: new Date().toISOString().split("T")[0],
+  payment_method: donateForm.payment_method,
+  description: donateForm.description,
+  status: "registered",
+});
     setSaving(false);
     setShowDonateForm(false);
     setDonateForm({ amount_mxn: "", description: "", payment_method: "transferencia" });
@@ -64,20 +128,76 @@ export default function DonorPortal() {
   }
 
   async function handleRegister(e) {
-    e.preventDefault();
-    setSaving(true);
-    const newDonor = await base44.entities.Donor.create({
-      ...registerForm,
-      portal_user_email: user?.email || registerForm.email,
+  e.preventDefault();
+  setSaving(true);
+
+  // 1) crear usuario auth
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email: registerForm.email,
+    password: registerForm.password,
+  });
+
+  if (signUpError) {
+    alert(signUpError.message);
+    setSaving(false);
+    return;
+  }
+
+  // 2) insertar en donors
+  const { data: newDonor, error } = await supabase
+    .from("donors")
+    .insert({
+      donor_type: registerForm.donor_type,
+      full_name: registerForm.full_name,
+      rfc: registerForm.rfc,
+      email: registerForm.email,
+      phone: registerForm.phone,
+      address: registerForm.address,
+      city: registerForm.city,
+      state: registerForm.state,
+      portal_user_email: registerForm.email,
       status: "pending",
       compliance_status: "incomplete",
       kyc_complete: false,
-    });
-    setDonor(newDonor);
-    setSaving(false);
-    setShowRegisterForm(false);
-    loadData();
+    })
+    .select()
+    .single();
+
+  setSaving(false);
+
+  if (error) {
+    alert(error.message);
+    return;
   }
+
+  setDonor(newDonor);
+  setShowRegisterForm(false);
+  await loadData();
+}
+
+  async function handleLogin(e) {
+  e.preventDefault();
+  setSaving(true);
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: loginForm.email,
+    password: loginForm.password,
+  });
+
+  setSaving(false);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  setUser(data.user);
+
+  setShowLoginForm(false);
+  setShowRegisterForm(false);
+
+  await loadData();
+}
 
   const completeness = donor ? checkDocumentCompleteness(documents, donor.donor_type, donor.beneficial_owner_exists) : { missing: [], expired: [], isComplete: false };
   const totalDonated = donations.reduce((s, d) => s + (d.amount_mxn || 0), 0);
@@ -103,7 +223,7 @@ export default function DonorPortal() {
 
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
         {/* If not registered as donor */}
-        {!donor && !showRegisterForm && (
+        {!donor && !showRegisterForm && !showLoginForm &&(
           <div className="bg-white/10 backdrop-blur rounded-2xl border border-white/15 p-8 text-center">
             <Heart className="w-12 h-12 text-teal-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Bienvenido al Portal de Donantes</h2>
@@ -111,6 +231,12 @@ export default function DonorPortal() {
             <Button onClick={() => setShowRegisterForm(true)} className="bg-teal-500 hover:bg-teal-400 text-white gap-2">
               <User className="w-4 h-4" /> Registrarme como Donante
             </Button>
+            <Button
+    onClick={() => { setShowLoginForm(true); setShowRegisterForm(false); }}
+    className="bg-teal-500 hover:bg-teal-400 text-white gap-2"
+  >
+    Iniciar sesión
+  </Button>
           </div>
         )}
 
@@ -142,6 +268,21 @@ export default function DonorPortal() {
                   <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">Correo Electrónico</Label>
                   <Input type="email" value={registerForm.email} onChange={e => setRegisterForm(p => ({ ...p, email: e.target.value }))} />
                 </div>
+
+                <div>
+                <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+                    Contraseña *
+                </Label>
+                <Input
+                    type="password"
+                    value={registerForm.password}
+                    onChange={e =>
+                    setRegisterForm(p => ({ ...p, password: e.target.value }))
+                    }
+                    required
+                />
+                </div>
+
                 <div>
                   <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">Teléfono</Label>
                   <Input value={registerForm.phone} onChange={e => setRegisterForm(p => ({ ...p, phone: e.target.value }))} />
@@ -158,6 +299,67 @@ export default function DonorPortal() {
             </form>
           </div>
         )}
+
+        {showLoginForm && (
+  <div className="bg-white rounded-2xl p-6 shadow-xl">
+    <h2 className="font-bold text-slate-900 text-xl mb-5">Iniciar Sesión</h2>
+
+    <form onSubmit={handleLogin} className="space-y-4">
+      <div>
+        <Label>Email</Label>
+        <Input
+          type="email"
+          value={loginForm.email}
+          onChange={e =>
+            setLoginForm(p => ({ ...p, email: e.target.value }))
+          }
+          required
+        />
+      </div>
+
+      <div>
+        <Label>Contraseña</Label>
+        <Input
+          type="password"
+          value={loginForm.password}
+          onChange={e =>
+            setLoginForm(p => ({ ...p, password: e.target.value }))
+          }
+          required
+        />
+      </div>
+
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+
+  <Button
+    type="button"
+    variant="ghost"
+    onClick={() => {
+      setShowLoginForm(false);
+      setShowRegisterForm(true);
+    }}
+  >
+    Registrarme
+  </Button>
+
+  <div className="flex gap-3">
+    <Button
+      type="button"
+      variant="outline"
+      onClick={() => setShowLoginForm(false)}
+    >
+      Cancelar
+    </Button>
+
+    <Button type="submit" disabled={saving} className="bg-teal-600 hover:bg-teal-700 text-white">
+      {saving ? "Entrando..." : "Iniciar sesión"}
+    </Button>
+  </div>
+
+</div>
+    </form>
+  </div>
+)}
 
         {/* Donor dashboard */}
         {donor && (

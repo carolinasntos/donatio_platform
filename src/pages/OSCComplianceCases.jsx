@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { AlertTriangle, Clock, CheckCircle2, FileText, Upload, Download, Copy } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { formatCurrency, formatUMA, getDaysUntilDeadline, UMA_DEFAULT } from "@/components/amlEngine";
@@ -35,40 +35,80 @@ export default function OSCComplianceCases() {
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    setLoading(true);
-    const [cl, dl, uma] = await Promise.all([
-      base44.entities.ComplianceCase.list("-created_date", 100),
-      base44.entities.Donor.list("-created_date", 200),
-      base44.entities.UMAConfig.filter({ is_active: true }, "-year", 1),
-    ]);
-    setCases(cl);
-    setDonors(dl);
-    if (uma.length > 0) setUmaConfig(uma[0]);
-    setLoading(false);
-  }
+  setLoading(true);
 
-  async function updateStatus(caseId, newStatus) {
-    await base44.entities.ComplianceCase.update(caseId, { status: newStatus });
-    loadData();
-  }
+  const [casesRes, donorsRes, umaRes] = await Promise.all([
+    supabase
+      .from("compliance_cases")
+      .select("*")
+      .order("created_date", { ascending: false })
+      .limit(100),
+
+    supabase
+      .from("donors")
+      .select("*")
+      .order("created_date", { ascending: false })
+      .limit(200),
+
+    supabase
+      .from("uma_config")
+      .select("*")
+      .eq("is_active", true)
+      .order("year", { ascending: false })
+      .limit(1),
+  ]);
+
+  if (casesRes.data) setCases(casesRes.data);
+  if (donorsRes.data) setDonors(donorsRes.data);
+  if (umaRes.data?.length) setUmaConfig(umaRes.data[0]);
+
+  setLoading(false);
+}
+
+ async function updateStatus(caseId, newStatus) {
+  await supabase
+    .from("compliance_cases")
+    .update({ status: newStatus })
+    .eq("id", caseId);
+
+  loadData();
+}
 
   async function uploadEvidence(caseId) {
-    if (!evidenceFile) return;
-    setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: evidenceFile });
-    await base44.entities.ComplianceCase.update(caseId, {
+  if (!evidenceFile) return;
+
+  setUploading(true);
+
+  const fileName = `${Date.now()}_${evidenceFile.name}`;
+
+  await supabase.storage
+    .from("evidence")
+    .upload(fileName, evidenceFile);
+
+  const { data: urlData } = supabase.storage
+    .from("evidence")
+    .getPublicUrl(fileName);
+
+  const file_url = urlData.publicUrl;
+
+  await supabase
+    .from("compliance_cases")
+    .update({
       evidence_url: file_url,
       sat_folio: satFolio,
       notes,
       status: "presented",
       presented_date: new Date().toISOString().split("T")[0]
-    });
-    setEvidenceFile(null);
-    setSatFolio("");
-    setNotes("");
-    setUploading(false);
-    loadData();
-  }
+    })
+    .eq("id", caseId);
+
+  setEvidenceFile(null);
+  setSatFolio("");
+  setNotes("");
+  setUploading(false);
+
+  loadData();
+}
 
   const filtered = cases.filter(c => filterStatus === "all" || c.status === filterStatus);
 

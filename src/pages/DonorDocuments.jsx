@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Upload, CheckCircle2, Clock, XCircle, Eye } from "lucide-react";
 import { DOCUMENT_TYPES, checkDocumentCompleteness } from "@/components/amlEngine";
 import { Button } from "@/components/ui/button";
@@ -20,38 +20,73 @@ export default function DonorDocuments() {
 
   async function loadData() {
     setLoading(true);
-    const u = await base44.auth.me().catch(() => null);
-    if (u) {
-      const donors = await base44.entities.Donor.filter({ portal_user_email: u.email }, "-created_date", 1);
-      if (donors.length > 0) {
-        setDonor(donors[0]);
-        setDocuments(await base44.entities.DonorDocument.filter({ donor_id: donors[0].id }, "-created_date", 50));
-      }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: donors } = await supabase
+  .from("donors")
+  .select("*")
+  .eq("portal_user_email", user.email)
+  .limit(1);
+
+if (donors && donors.length > 0) {
+  setDonor(donors[0]);
+
+  const { data: docs } = await supabase
+    .from("donor_documents")
+    .select("*")
+    .eq("donor_id", donors[0].id)
+    .order("created_date", { ascending: false })
+    .limit(50);
+
+  setDocuments(docs || []);
+}
     }
     setLoading(false);
   }
 
   async function handleUpload(e) {
-    e.preventDefault();
-    if (!file || !donor) return;
-    setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    await base44.entities.DonorDocument.create({
-      donor_id: donor.id,
-      organization_id: donor.organization_id,
-      document_type: form.document_type,
-      document_name: file.name,
-      file_url,
-      upload_date: new Date().toISOString().split("T")[0],
-      expiry_date: form.expiry_date || null,
-      status: "pending",
-    });
-    setFile(null);
-    setForm({ document_type: "", expiry_date: "" });
-    setShowUpload(false);
+  e.preventDefault();
+
+  if (!file || !donor) return;
+
+  setUploading(true);
+
+  const filePath = `documents/${Date.now()}_${file.name}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("documents")
+    .upload(filePath, file);
+
+  if (uploadError) {
+    console.error(uploadError);
     setUploading(false);
-    loadData();
+    return;
   }
+
+  const { data } = supabase.storage
+    .from("documents")
+    .getPublicUrl(filePath);
+
+  const file_url = data.publicUrl;
+
+  await supabase.from("donor_documents").insert({
+    donor_id: donor.id,
+    organization_id: donor.organization_id,
+    document_type: form.document_type,
+    document_name: file.name,
+    file_url,
+    upload_date: new Date().toISOString().split("T")[0],
+    expiry_date: form.expiry_date || null,
+    status: "pending",
+  });
+
+  setFile(null);
+  setForm({ document_type: "", expiry_date: "" });
+  setShowUpload(false);
+  setUploading(false);
+
+  loadData();
+}
 
   if (!donor && !loading) return (
     <div className="p-6 max-w-2xl mx-auto text-center py-20">

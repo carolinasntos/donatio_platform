@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Plus, Search, Filter, User, Building2, Eye, Edit, AlertTriangle } from "lucide-react";
@@ -28,17 +28,35 @@ export default function OSCDonors() {
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    setLoading(true);
-    const [dl, don, uma] = await Promise.all([
-      base44.entities.Donor.list("-created_date", 200),
-      base44.entities.Donation.list("-donation_date", 1000),
-      base44.entities.UMAConfig.filter({ is_active: true }, "-year", 1),
-    ]);
-    setDonors(dl);
-    setDonations(don);
-    if (uma.length > 0) setUmaConfig(uma[0]);
-    setLoading(false);
-  }
+  setLoading(true);
+
+  const [donorsRes, donationsRes, umaRes] = await Promise.all([
+    supabase
+      .from("donors")
+      .select("*")
+      .order("created_date", { ascending: false })
+      .limit(200),
+
+    supabase
+      .from("donations")
+      .select("*")
+      .order("donation_date", { ascending: false })
+      .limit(1000),
+
+    supabase
+      .from("uma_config")
+      .select("*")
+      .eq("is_active", true)
+      .order("year", { ascending: false })
+      .limit(1),
+  ]);
+
+  if (donorsRes.data) setDonors(donorsRes.data);
+  if (donationsRes.data) setDonations(donationsRes.data);
+  if (umaRes.data?.length) setUmaConfig(umaRes.data[0]);
+
+  setLoading(false);
+}
 
   const filtered = donors.filter(d => {
     const matchSearch = !search || d.full_name?.toLowerCase().includes(search.toLowerCase()) || d.rfc?.toLowerCase().includes(search.toLowerCase()) || d.email?.toLowerCase().includes(search.toLowerCase());
@@ -48,15 +66,21 @@ export default function OSCDonors() {
   });
 
   async function handleSave(data) {
-    if (editingDonor) {
-      await base44.entities.Donor.update(editingDonor.id, data);
-    } else {
-      await base44.entities.Donor.create(data);
-    }
-    setShowForm(false);
-    setEditingDonor(null);
-    loadData();
+  if (editingDonor) {
+    await supabase
+      .from("donors")
+      .update(data)
+      .eq("id", editingDonor.id);
+  } else {
+    await supabase
+      .from("donors")
+      .insert(data);
   }
+
+  setShowForm(false);
+  setEditingDonor(null);
+  loadData();
+}
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Plus, Search, Building2, Edit, X, Save } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -22,17 +22,34 @@ export default function AdminOrganizations() {
 
   async function loadData() {
     setLoading(true);
-    setOrgs(await base44.entities.Organization.list("-created_date", 100));
+
+    const { data, error } = await supabase
+        .from("organizations")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(100);
+
+    if (error) {
+        console.error(error);
+    } else {
+        setOrgs(data || []);
+    }
+
     setLoading(false);
-  }
+    }
 
   async function handleSave(e) {
     e.preventDefault();
     setSaving(true);
     if (editing) {
-      await base44.entities.Organization.update(editing.id, form);
+    await supabase
+        .from("organizations")
+        .update(form)
+        .eq("id", editing.id);
     } else {
-      await base44.entities.Organization.create(form);
+    await supabase
+        .from("organizations")
+        .insert([form]);
     }
     setSaving(false);
     setShowForm(false);

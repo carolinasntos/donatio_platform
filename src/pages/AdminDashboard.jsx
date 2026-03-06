@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Building2, AlertTriangle, Shield, BarChart2, Clock, CheckCircle2, XCircle } from "lucide-react";
@@ -21,18 +21,45 @@ export default function AdminDashboard() {
 
   async function loadData() {
     setLoading(true);
-    const [ol, al, cl, dl] = await Promise.all([
-      base44.entities.Organization.list("-created_date", 100),
-      base44.entities.Alert.filter({ status: "active" }, "-created_date", 200),
-      base44.entities.ComplianceCase.list("-created_date", 200),
-      base44.entities.Donor.list("-created_date", 500),
+
+    const [
+        { data: ol },
+        { data: al },
+        { data: cl },
+        { data: dl }
+    ] = await Promise.all([
+        supabase
+        .from("organizations")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(100),
+
+        supabase
+        .from("alerts")
+        .select("*")
+        .eq("status", "active")
+        .order("created_date", { ascending: false })
+        .limit(200),
+
+        supabase
+        .from("compliance_cases")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(200),
+
+        supabase
+        .from("donors")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(500)
     ]);
-    setOrgs(ol);
-    setAlerts(al);
-    setCases(cl);
-    setDonors(dl);
+
+    setOrgs(ol || []);
+    setAlerts(al || []);
+    setCases(cl || []);
+    setDonors(dl || []);
     setLoading(false);
-  }
+    }
 
   const criticalAlerts = alerts.filter(a => a.severity === "critical");
   const overdueCount = cases.filter(c => c.deadline_date && getDaysUntilDeadline(c.deadline_date) < 0 && !["closed", "presented"].includes(c.status)).length;

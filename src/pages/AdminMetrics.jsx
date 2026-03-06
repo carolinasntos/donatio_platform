@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import PageHeader from "@/components/shared/PageHeader";
 import StatCard from "@/components/shared/StatCard";
@@ -19,18 +19,45 @@ export default function AdminMetrics() {
 
   async function loadData() {
     setLoading(true);
-    const [cl, al, ol, dl] = await Promise.all([
-      base44.entities.ComplianceCase.list("-created_date", 500),
-      base44.entities.Alert.list("-created_date", 500),
-      base44.entities.Organization.list("-created_date", 100),
-      base44.entities.Donor.list("-created_date", 500),
+
+    const [
+        { data: cl },
+        { data: al },
+        { data: ol },
+        { data: dl }
+    ] = await Promise.all([
+        supabase
+        .from("compliance_cases")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(500),
+
+        supabase
+        .from("alerts")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(500),
+
+        supabase
+        .from("organizations")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(100),
+
+        supabase
+        .from("donors")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(500)
     ]);
-    setCases(cl);
-    setAlerts(al);
-    setOrgs(ol);
-    setDonors(dl);
+
+    setCases(cl || []);
+    setAlerts(al || []);
+    setOrgs(ol || []);
+    setDonors(dl || []);
+
     setLoading(false);
-  }
+    }
 
   // Case status distribution
   const caseStatusData = [

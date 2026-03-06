@@ -1,39 +1,71 @@
-**Welcome to your Base44 project** 
+# Donatio AML Platform
 
-**About**
+Sistema web para la gestión de cumplimiento **AML / LFPIORPI** en organizaciones de la sociedad civil (OSC) que reciben donativos.
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+La plataforma permite administrar donantes, donativos, expedientes documentales y alertas regulatorias para ayudar a las OSC a cumplir con la **Ley Federal para la Prevención e Identificación de Operaciones con Recursos de Procedencia Ilícita (LFPIORPI)** en México.
 
-This project contains everything you need to run your app locally.
+---
 
-**Edit the code in your local development environment**
+# Características principales
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+- Registro y gestión de **donantes**
+- Registro y seguimiento de **donativos**
+- **Cálculo automático de acumulación de donativos** en ventana móvil de 6 meses
+- **Detección automática de umbrales regulatorios**:
+  - Identificación reforzada: **1605 UMAs**
+  - Obligación de aviso al SAT: **3210 UMAs**
+- **Expediente digital KYC** por donante
+- **Verificación documental**
+- **Alertas AML**
+- **Gestión de avisos SAT**
+- **Configuración dinámica de UMAs**
+- **Chatbot AML** para consultas sobre cumplimiento
 
-**Prerequisites:** 
+---
 
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
+# Arquitectura
 
-```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
+La aplicación utiliza una arquitectura moderna serverless.
 
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
-```
+React (Vite)
+│
+▼
+Supabase
+├─ PostgreSQL (Base de datos)
+├─ Auth (Autenticación)
+└─ Storage (Documentos KYC)
 
-Run the app: `npm run dev`
+Tecnologías utilizadas:
 
-**Publish your changes**
+- **React**
+- **Vite**
+- **Supabase**
+- **PostgreSQL**
+- **TailwindCSS**
+- **Lucide Icons**
 
-Open [Base44.com](http://Base44.com) and click on Publish.
+---
 
-**Docs & Support**
+# Requisitos
 
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
+- Node.js 18 o superior
+- npm
 
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+---
+
+# Instalación
+
+Clonar el repositorio:
+
+```bash
+git clone https://github.com/your-repository/donatio-platform.git
+cd donatio-platform
+
+Instalar dependencias
+npm install
+
+.env.local
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_public_key
+
+npm run dev

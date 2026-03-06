@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { AlertTriangle, Search } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import AlertBadge from "@/components/shared/AlertBadge";
@@ -21,16 +21,36 @@ export default function AdminAlerts() {
 
   async function loadData() {
     setLoading(true);
-    const [al, ol, dl] = await Promise.all([
-      base44.entities.Alert.list("-created_date", 500),
-      base44.entities.Organization.list("-created_date", 100),
-      base44.entities.Donor.list("-created_date", 200),
+
+    const [
+        { data: al },
+        { data: ol },
+        { data: dl }
+    ] = await Promise.all([
+        supabase
+        .from("alerts")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(500),
+
+        supabase
+        .from("organizations")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(100),
+
+        supabase
+        .from("donors")
+        .select("*")
+        .order("created_date", { ascending: false })
+        .limit(200),
     ]);
-    setAlerts(al);
-    setOrgs(ol);
-    setDonors(dl);
+
+    setAlerts(al || []);
+    setOrgs(ol || []);
+    setDonors(dl || []);
     setLoading(false);
-  }
+    }
 
   const filtered = alerts.filter(a => {
     const matchSev = filterSeverity === "all" || a.severity === filterSeverity;

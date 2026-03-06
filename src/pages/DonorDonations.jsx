@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { FileText, Download } from "lucide-react";
 import { formatCurrency } from "@/components/amlEngine";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,25 @@ export default function DonorDonations() {
 
   async function loadData() {
     setLoading(true);
-    const u = await base44.auth.me().catch(() => null);
+    const { data: { user } } = await supabase.auth.getUser();
     if (u) {
-      const donors = await base44.entities.Donor.filter({ portal_user_email: u.email }, "-created_date", 1);
-      if (donors.length > 0) {
-        setDonor(donors[0]);
-        setDonations(await base44.entities.Donation.filter({ donor_id: donors[0].id }, "-donation_date", 100));
+      const { data: donors } = await supabase
+  .from("donors")
+  .select("*")
+  .eq("portal_user_email", user.email)
+  .limit(1);
+
+      if (donors && donors.length > 0) {
+      setDonor(donors[0]);
+
+        const { data: donationsData } = await supabase
+  .from("donations")
+  .select("*")
+  .eq("donor_id", donors[0].id)
+  .order("donation_date", { ascending: false })
+  .limit(100);
+
+setDonations(donationsData || []);
       }
     }
     setLoading(false);

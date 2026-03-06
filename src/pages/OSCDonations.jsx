@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Plus, AlertCircle, Search, Download } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import {
@@ -28,17 +28,35 @@ export default function OSCDonations() {
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    setLoading(true);
-    const [don, dons, uma] = await Promise.all([
-      base44.entities.Donation.list("-donation_date", 300),
-      base44.entities.Donor.list("-created_date", 200),
-      base44.entities.UMAConfig.filter({ is_active: true }, "-year", 1),
-    ]);
-    setDonations(don);
-    setDonors(dons);
-    if (uma.length > 0) setUmaConfig(uma[0]);
-    setLoading(false);
-  }
+  setLoading(true);
+
+  const [donRes, donorRes, umaRes] = await Promise.all([
+    supabase
+      .from("donations")
+      .select("*")
+      .order("donation_date", { ascending: false })
+      .limit(300),
+
+    supabase
+      .from("donors")
+      .select("*")
+      .order("created_date", { ascending: false })
+      .limit(200),
+
+    supabase
+      .from("uma_config")
+      .select("*")
+      .eq("is_active", true)
+      .order("year", { ascending: false })
+      .limit(1),
+  ]);
+
+  if (donRes.data) setDonations(donRes.data);
+  if (donorRes.data) setDonors(donorRes.data);
+  if (umaRes.data?.length) setUmaConfig(umaRes.data[0]);
+
+  setLoading(false);
+}
 
   function handleAmountChange(val) {
     setForm(prev => ({ ...prev, amount_mxn: val }));
@@ -66,49 +84,71 @@ export default function OSCDonations() {
     const accUMA = mxnToUMA(acc6m, umaConfig);
     const threshold = checkThresholds(accUMA, umaConfig);
 
-    const donation = await base44.entities.Donation.create({
-      ...form,
-      amount_mxn: amount,
-      amount_uma: amountUMA,
-      accumulated_6m_at_donation: acc6m,
-      accumulated_uma_6m: accUMA,
-      threshold_triggered: threshold,
-    });
+    const { data: donation, error } = await supabase
+  .from("donations")
+  .insert({
+    donor_id: form.donor_id,
+    amount_mxn: amount,
+    amount_uma: amountUMA,
+    accumulated_6m_at_donation: acc6m,
+    accumulated_uma_6m: accUMA,
+    threshold_triggered: threshold,
+    donation_date: form.donation_date,
+    payment_method: form.payment_method,
+    description: form.description,
+    reference: form.reference,
+    is_manual_entry: true
+  })
+  .select()
+  .single();
 
     // Create alert/case if threshold triggered
     if (threshold === 'notice') {
       const deadline = getDeadlineDate(form.donation_date);
       await Promise.all([
-        base44.entities.ComplianceCase.create({
-          donor_id: form.donor_id,
-          case_type: 'aviso_sat',
-          threshold_triggered: 'notice',
-          threshold_uma: umaConfig.threshold_notice_uma || 3210,
-          accumulated_mxn: acc6m,
-          accumulated_uma: accUMA,
-          trigger_date: form.donation_date,
-          deadline_date: deadline.toISOString().split('T')[0],
-          status: 'pending',
-        }),
-        base44.entities.Alert.create({
-          donor_id: form.donor_id,
-          donation_id: donation.id,
-          alert_type: 'threshold_notice',
-          severity: 'high',
-          title: 'Umbral de Aviso SAT Activado',
-          description: `Acumulado de ${formatCurrency(acc6m)} (${formatUMA(accUMA)}) supera umbral de aviso.`,
-        })
+        await supabase
+  .from("compliance_cases")
+  .insert({
+    donor_id: form.donor_id,
+    case_type: "aviso_sat",
+    threshold_triggered: "notice",
+    threshold_uma: umaConfig.threshold_notice_uma || 3210,
+    accumulated_mxn: acc6m,
+    accumulated_uma: accUMA,
+    trigger_date: form.donation_date,
+    deadline_date: deadline.toISOString().split("T")[0],
+    status: "pending",
+  }),
+        await supabase
+  .from("alerts")
+  .insert({
+    donor_id: form.donor_id,
+    donation_id: donation.id,
+    alert_type: "threshold_notice",
+    severity: "high",
+    title: "Umbral de Aviso SAT Activado",
+    description: `Acumulado de ${formatCurrency(acc6m)} (${formatUMA(accUMA)}) supera umbral de aviso.`,
+    status: "active"
+  })
       ]);
     } else if (threshold === 'identification') {
-      await base44.entities.Alert.create({
-        donor_id: form.donor_id,
-        donation_id: donation.id,
-        alert_type: 'threshold_identification',
-        severity: 'medium',
-        title: 'Identificación Reforzada Requerida',
-        description: `Acumulado de ${formatCurrency(acc6m)} (${formatUMA(accUMA)}) supera umbral de identificación.`,
-      });
-      await base44.entities.Donor.update(form.donor_id, { compliance_status: 'identification_required' });
+
+  await supabase
+    .from("alerts")
+    .insert({
+      donor_id: form.donor_id,
+      donation_id: donation.id,
+      alert_type: "threshold_identification",
+      severity: "medium",
+      title: "Identificación Reforzada Requerida",
+      description: `Acumulado de ${formatCurrency(acc6m)} (${formatUMA(accUMA)}) supera umbral de identificación.`,
+      status: "active"
+    });
+
+  await supabase
+    .from("donors")
+    .update({ compliance_status: "identification_required" })
+    .eq("id", form.donor_id);
     }
 
     setSaving(false);

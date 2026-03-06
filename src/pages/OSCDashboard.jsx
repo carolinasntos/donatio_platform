@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Users, FileText, Bell, AlertTriangle, TrendingUp, Clock, CheckCircle2, XCircle, Shield } from "lucide-react";
@@ -29,21 +29,50 @@ export default function OSCDashboard() {
   }, []);
 
   async function loadData() {
-    setLoading(true);
-    const [donorList, donationList, alertList, caseList, umaList] = await Promise.all([
-      base44.entities.Donor.list("-created_date", 100),
-      base44.entities.Donation.list("-donation_date", 500),
-      base44.entities.Alert.filter({ status: "active" }, "-created_date", 50),
-      base44.entities.ComplianceCase.list("-created_date", 50),
-      base44.entities.UMAConfig.filter({ is_active: true }, "-year", 1),
-    ]);
-    setDonors(donorList);
-    setDonations(donationList);
-    setAlerts(alertList);
-    setCases(caseList);
-    if (umaList.length > 0) setUmaConfig(umaList[0]);
-    setLoading(false);
-  }
+  setLoading(true);
+
+  const [donorsRes, donationsRes, alertsRes, casesRes, umaRes] = await Promise.all([
+    supabase
+      .from("donors")
+      .select("*")
+      .order("created_date", { ascending: false })
+      .limit(100),
+
+    supabase
+      .from("donations")
+      .select("*")
+      .order("donation_date", { ascending: false })
+      .limit(500),
+
+    supabase
+      .from("alerts")
+      .select("*")
+      .eq("status", "active")
+      .order("created_date", { ascending: false })
+      .limit(50),
+
+    supabase
+      .from("compliance_cases")
+      .select("*")
+      .order("created_date", { ascending: false })
+      .limit(50),
+
+    supabase
+      .from("uma_config")
+      .select("*")
+      .eq("is_active", true)
+      .order("year", { ascending: false })
+      .limit(1),
+  ]);
+
+  if (donorsRes.data) setDonors(donorsRes.data);
+  if (donationsRes.data) setDonations(donationsRes.data);
+  if (alertsRes.data) setAlerts(alertsRes.data);
+  if (casesRes.data) setCases(casesRes.data);
+  if (umaRes.data?.length) setUmaConfig(umaRes.data[0]);
+
+  setLoading(false);
+}
 
   const totalDonations = donations.reduce((s, d) => s + (d.amount_mxn || 0), 0);
   const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);

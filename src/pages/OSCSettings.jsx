@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Settings, Save, Calculator } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { UMA_DEFAULT, umaToMXN, formatCurrency } from "@/components/amlEngine";
@@ -16,12 +16,19 @@ export default function OSCSettings() {
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    const uma = await base44.entities.UMAConfig.filter({ is_active: true }, "-year", 1);
-    if (uma.length > 0) {
-      setUmaConfig(uma[0]);
-      setForm(uma[0]);
-    }
+
+  const { data, error } = await supabase
+    .from("uma_config")
+    .select("*")
+    .eq("is_active", true)
+    .order("year", { ascending: false })
+    .limit(1);
+
+  if (data && data.length > 0) {
+    setUmaConfig(data[0]);
+    setForm(data[0]);
   }
+}
 
   async function handleSave(e) {
     e.preventDefault();
@@ -29,10 +36,19 @@ export default function OSCSettings() {
     const annual = form.daily_value_mxn * 365;
     const data = { ...form, annual_value_mxn: annual, is_active: true, daily_value_mxn: parseFloat(form.daily_value_mxn), threshold_identification_uma: parseFloat(form.threshold_identification_uma), threshold_notice_uma: parseFloat(form.threshold_notice_uma) };
     if (umaConfig?.id) {
-      await base44.entities.UMAConfig.update(umaConfig.id, data);
-    } else {
-      await base44.entities.UMAConfig.create(data);
-    }
+
+  await supabase
+    .from("uma_config")
+    .update(data)
+    .eq("id", umaConfig.id);
+
+} else {
+
+  await supabase
+    .from("uma_config")
+    .insert(data);
+
+}
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);

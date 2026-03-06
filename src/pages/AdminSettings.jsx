@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Save, Plus, Trash2 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { formatCurrency } from "@/components/amlEngine";
@@ -15,33 +15,53 @@ export default function AdminSettings() {
 
   useEffect(() => { loadData(); }, []);
 
-  async function loadData() {
+    async function loadData() {
     setLoading(true);
-    setUmaList(await base44.entities.UMAConfig.list("-year", 10));
+
+    const { data, error } = await supabase
+        .from("uma_config")
+        .select("*")
+        .order("year", { ascending: false })
+        .limit(10);
+
+    if (error) {
+        console.error(error);
+    } else {
+        setUmaList(data || []);
+    }
+
     setLoading(false);
-  }
+    }
 
   async function handleCreate(e) {
     e.preventDefault();
     setSaving(true);
-    await base44.entities.UMAConfig.create({
-      ...form,
-      daily_value_mxn: parseFloat(form.daily_value_mxn),
-      annual_value_mxn: parseFloat(form.daily_value_mxn) * 365,
-      threshold_identification_uma: parseFloat(form.threshold_identification_uma),
-      threshold_notice_uma: parseFloat(form.threshold_notice_uma),
-    });
+    await supabase
+    .from("uma_config")
+    .insert([{
+        ...form,
+        daily_value_mxn: parseFloat(form.daily_value_mxn),
+        annual_value_mxn: parseFloat(form.daily_value_mxn) * 365,
+        threshold_identification_uma: parseFloat(form.threshold_identification_uma),
+        threshold_notice_uma: parseFloat(form.threshold_notice_uma),
+    }]);
     setSaving(false);
     loadData();
   }
 
   async function toggleActive(uma) {
-    await base44.entities.UMAConfig.update(uma.id, { is_active: !uma.is_active });
+    await supabase
+    .from("uma_config")
+    .update({ is_active: !uma.is_active })
+    .eq("id", uma.id);
     loadData();
   }
 
   async function deleteUMA(id) {
-    await base44.entities.UMAConfig.delete(id);
+    await supabase
+    .from("uma_config")
+    .delete()
+    .eq("id", id);
     loadData();
   }
 

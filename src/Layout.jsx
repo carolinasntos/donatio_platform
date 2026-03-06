@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import {
   LayoutDashboard, Users, FileText, Bell, Settings, LogOut,
   ChevronLeft, ChevronRight, Shield, Building2, AlertTriangle,
@@ -45,8 +45,19 @@ export default function Layout({ children, currentPageName }) {
   const [activeAlerts, setActiveAlerts] = useState(0);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
-  }, []);
+  async function loadUser() {
+
+    const { data } = await supabase.auth.getUser();
+
+    if (data?.user) {
+      setUser(data.user);
+    }
+
+  }
+
+  loadUser();
+
+}, []);
 
   const isAdminPage = currentPageName?.startsWith("Admin");
   const isDonorPage = currentPageName?.startsWith("Donor");
@@ -108,7 +119,10 @@ export default function Layout({ children, currentPageName }) {
           </div>
         )}
         <button
-          onClick={() => base44.auth.logout()}
+          onClick={async () => {
+        await supabase.auth.signOut();
+        window.location.href = "/";
+        }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/65 hover:bg-white/10 hover:text-white transition-all"
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
