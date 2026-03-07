@@ -14,7 +14,7 @@ export default function DonorDonations() {
   async function loadData() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (u) {
+    if (user) {
       const { data: donors } = await supabase
   .from("donors")
   .select("*")

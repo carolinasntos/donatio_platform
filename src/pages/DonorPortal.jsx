@@ -17,12 +17,13 @@ export default function DonorPortal() {
   const [documents, setDocuments] = useState([]);
   const [showDonateForm, setShowDonateForm] = useState(false);
   const [showRegisterForm, setShowRegisterForm] = useState(false);
-  const [donateForm, setDonateForm] = useState({ amount_mxn: "", description: "", payment_method: "transferencia" });
+  const [donateForm, setDonateForm] = useState({ amount_mxn: "", description: "", payment_method: "transferencia", organization_id: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [registerForm, setRegisterForm] = useState({ donor_type: "fisica", full_name: "", rfc: "", email: "", phone: "", address: "", city: "", state: "", password: "",});
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+const [organizations, setOrganizations] = useState([]);
 
   useEffect(() => {
   // al montar: intenta cargar una vez
@@ -104,17 +105,28 @@ useEffect(() => {
   setDonations(donationsRes.data || []);
   setDocuments(documentsRes.data || []);
 
+  const { data: orgs } = await supabase
+  .from("organizations")
+  .select("id,name")
+  .eq("status","active");
+
+setOrganizations(orgs || []);
+
   setLoading(false);
 }
 
   async function handleDonate(e) {
     e.preventDefault();
+    if (!donateForm.organization_id) {
+    alert("Selecciona una organización");
+    return;
+    }
     if (donateForm.payment_method === "efectivo") return;
     if (!donor) return;
     setSaving(true);
     await supabase.from("donations").insert({
   donor_id: donor.id,
-  organization_id: donor.organization_id,
+  organization_id: donateForm.organization_id,
   amount_mxn: parseFloat(donateForm.amount_mxn),
   donation_date: new Date().toISOString().split("T")[0],
   payment_method: donateForm.payment_method,
@@ -123,7 +135,7 @@ useEffect(() => {
 });
     setSaving(false);
     setShowDonateForm(false);
-    setDonateForm({ amount_mxn: "", description: "", payment_method: "transferencia" });
+    setDonateForm({ amount_mxn: "", description: "", payment_method: "transferencia", organization_id: "" });
     loadData();
   }
 
@@ -448,6 +460,30 @@ useEffect(() => {
                   </Alert>
                 )}
                 <form onSubmit={handleDonate} className="space-y-4">
+                  <div>
+  <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">
+    Organización *
+  </Label>
+
+  <Select
+    value={donateForm.organization_id}
+    onValueChange={v =>
+      setDonateForm(p => ({ ...p, organization_id: v }))
+    }
+  >
+    <SelectTrigger>
+      <SelectValue placeholder="Seleccionar organización" />
+    </SelectTrigger>
+
+    <SelectContent>
+      {organizations.map(o => (
+        <SelectItem key={o.id} value={o.id}>
+          {o.name}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
                   <div>
                     <Label className="text-xs font-semibold text-slate-700 mb-1.5 block">Monto (MXN) *</Label>
                     <Input type="number" min="1" step="0.01" value={donateForm.amount_mxn} onChange={e => setDonateForm(p => ({ ...p, amount_mxn: e.target.value }))} required placeholder="0.00" />

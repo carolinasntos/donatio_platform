@@ -35,7 +35,7 @@ if (donors && donors.length > 0) {
     .from("donor_documents")
     .select("*")
     .eq("donor_id", donors[0].id)
-    .order("created_date", { ascending: false })
+    .order("upload_date", { ascending: false })
     .limit(50);
 
   setDocuments(docs || []);
@@ -51,7 +51,7 @@ if (donors && donors.length > 0) {
 
   setUploading(true);
 
-  const filePath = `documents/${Date.now()}_${file.name}`;
+  const filePath = `${donor.id}/${Date.now()}_${file.name}`;
 
   const { error: uploadError } = await supabase.storage
     .from("documents")
@@ -59,26 +59,33 @@ if (donors && donors.length > 0) {
 
   if (uploadError) {
     console.error(uploadError);
+    alert(uploadError.message);
     setUploading(false);
     return;
   }
 
-  const { data } = supabase.storage
+  const { data: urlData } = supabase.storage
     .from("documents")
     .getPublicUrl(filePath);
 
-  const file_url = data.publicUrl;
+  const file_url = urlData.publicUrl;
 
-  await supabase.from("donor_documents").insert({
-    donor_id: donor.id,
-    organization_id: donor.organization_id,
-    document_type: form.document_type,
-    document_name: file.name,
-    file_url,
-    upload_date: new Date().toISOString().split("T")[0],
-    expiry_date: form.expiry_date || null,
-    status: "pending",
-  });
+  const { error: insertError } = await supabase
+    .from("donor_documents")
+    .insert({
+      donor_id: donor.id,
+      organization_id: donor.organization_id,
+      document_type: form.document_type,
+      document_name: file.name,
+      file_url,
+      upload_date: new Date().toISOString().split("T")[0],
+      expiry_date: form.expiry_date || null,
+      status: "pending",
+    });
+
+  if (insertError) {
+    console.error("Insert error:", insertError);
+  }
 
   setFile(null);
   setForm({ document_type: "", expiry_date: "" });
