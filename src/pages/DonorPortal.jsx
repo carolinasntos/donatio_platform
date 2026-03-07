@@ -98,7 +98,7 @@ useEffect(() => {
       .from("donor_documents")
       .select("*")
       .eq("donor_id", d.id)
-      .order("created_date", { ascending: false })
+      .order("id", { ascending: false })
       .limit(20),
   ]);
 
@@ -477,7 +477,7 @@ setOrganizations(orgs || []);
 
     <SelectContent>
       {organizations.map(o => (
-        <SelectItem key={o.id} value={o.id}>
+        <SelectItem key={o.id} value={String(o.id)}>
           {o.name}
         </SelectItem>
       ))}

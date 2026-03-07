@@ -142,11 +142,28 @@ export function getRequiredDocuments(donorType, hasBeneficialOwner = false) {
 }
 
 export function checkDocumentCompleteness(documents, donorType, hasBeneficialOwner) {
-  const required = getRequiredDocuments(donorType, hasBeneficialOwner);
-  const uploadedTypes = documents.filter(d => d.status !== 'rejected').map(d => d.document_type);
+
+  const required = getRequiredDocuments(donorType, hasBeneficialOwner)
+    .map(d => d.trim().toLowerCase());
+
+  const uploadedTypes = documents
+    .filter(d => d.status === 'valid')
+    .map(d => (d.document_type || "").trim().toLowerCase());
+
   const missing = required.filter(r => !uploadedTypes.includes(r));
-  const expired = documents.filter(d => d.expiry_date && new Date(d.expiry_date) < new Date());
-  return { missing, expired, isComplete: missing.length === 0 && expired.length === 0 };
+
+  const expired = documents.filter(
+    d =>
+      d.status === 'valid' &&
+      d.expiry_date &&
+      new Date(d.expiry_date) < new Date()
+  );
+
+  return {
+    missing,
+    expired,
+    isComplete: missing.length === 0 && expired.length === 0
+  };
 }
 
 export const ALERT_TYPES = {
