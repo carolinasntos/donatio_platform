@@ -1,57 +1,57 @@
-import React, { createContext, useState, useContext, useEffect } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import React, { createContext, useState, useContext, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
-const AuthContext = createContext()
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true)
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   useEffect(() => {
-    checkUser()
+    checkUser();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (session?.user) {
-          setUser(session.user)
-          setIsAuthenticated(true)
+          setUser(session.user);
+          setIsAuthenticated(true);
         } else {
-          setUser(null)
-          setIsAuthenticated(false)
+          setUser(null);
+          setIsAuthenticated(false);
         }
-        setIsLoadingAuth(false)
-      }
-    )
+        setIsLoadingAuth(false);
+      },
+    );
 
     return () => {
-      listener.subscription.unsubscribe()
-    }
-  }, [])
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   const checkUser = async () => {
-    const { data } = await supabase.auth.getSession()
+    const { data } = await supabase.auth.getSession();
 
     if (data?.session?.user) {
-      setUser(data.session.user)
-      setIsAuthenticated(true)
+      setUser(data.session.user);
+      setIsAuthenticated(true);
     } else {
-      setUser(null)
-      setIsAuthenticated(false)
+      setUser(null);
+      setIsAuthenticated(false);
     }
 
-    setIsLoadingAuth(false)
-  }
+    setIsLoadingAuth(false);
+  };
 
   const logout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setIsAuthenticated(false)
-  }
+    await supabase.auth.signOut();
+    setUser(null);
+    setIsAuthenticated(false);
+  };
 
   const navigateToLogin = () => {
-    window.location.href = "/login"
-  }
+    window.location.href = "/login";
+  };
 
   return (
     <AuthContext.Provider
@@ -60,20 +60,20 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         isLoadingAuth,
         logout,
-        navigateToLogin
+        navigateToLogin,
       }}
     >
       {children}
     </AuthContext.Provider>
-  )
-}
+  );
+};
 
 export const useAuth = () => {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
+    throw new Error("useAuth must be used within AuthProvider");
   }
 
-  return context
-}
+  return context;
+};

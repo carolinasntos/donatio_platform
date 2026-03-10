@@ -3,9 +3,24 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { supabase } from "@/lib/supabaseClient";
 import {
-  LayoutDashboard, Users, FileText, Bell, Settings, LogOut,
-  ChevronLeft, ChevronRight, Shield, Building2, AlertTriangle,
-  BookOpen, MessageSquare, BarChart2, Ticket, Menu, X, Home
+  LayoutDashboard,
+  Users,
+  FileText,
+  Bell,
+  Settings,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  Shield,
+  Building2,
+  AlertTriangle,
+  BookOpen,
+  MessageSquare,
+  BarChart2,
+  Ticket,
+  Menu,
+  X,
+  Home,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -45,29 +60,40 @@ export default function Layout({ children, currentPageName }) {
   const [activeAlerts, setActiveAlerts] = useState(0);
 
   useEffect(() => {
-  async function loadUser() {
+    async function loadUser() {
+      const { data } = await supabase.auth.getUser();
 
-    const { data } = await supabase.auth.getUser();
-
-    if (data?.user) {
-      setUser(data.user);
+      if (data?.user) {
+        setUser(data.user);
+      }
     }
 
-  }
-
-  loadUser();
-
-}, []);
+    loadUser();
+  }, []);
 
   const isAdminPage = currentPageName?.startsWith("Admin");
   const isDonorPage = currentPageName?.startsWith("Donor");
-  const isPublicPage = ["Home", "Login", "Register", "DonorRegister"].includes(currentPageName);
+  const isPublicPage = ["Home", "Login", "Register", "DonorRegister"].includes(
+    currentPageName,
+  );
 
   if (isPublicPage) return <>{children}</>;
 
-  const navItems = isAdminPage ? adminNavItems : isDonorPage ? donorNavItems : oscNavItems;
-  const portalName = isAdminPage ? "AppleSeed" : isDonorPage ? "Portal Donante" : "Portal OSC";
-  const portalColor = isAdminPage ? "from-violet-900 to-violet-800" : isDonorPage ? "from-teal-800 to-teal-700" : "from-slate-900 to-slate-800";
+  const navItems = isAdminPage
+    ? adminNavItems
+    : isDonorPage
+      ? donorNavItems
+      : oscNavItems;
+  const portalName = isAdminPage
+    ? "AppleSeed"
+    : isDonorPage
+      ? "Portal Donante"
+      : "Portal OSC";
+  const portalColor = isAdminPage
+    ? "from-violet-900 to-violet-800"
+    : isDonorPage
+      ? "from-teal-800 to-teal-700"
+      : "from-slate-900 to-slate-800";
 
   const NavContent = () => (
     <>
@@ -78,7 +104,9 @@ export default function Layout({ children, currentPageName }) {
           </div>
           {!collapsed && (
             <div className="overflow-hidden">
-              <p className="text-white font-bold text-sm leading-tight">AppleSeed AML</p>
+              <p className="text-white font-bold text-sm leading-tight">
+                AppleSeed AML
+              </p>
               <p className="text-white/60 text-xs">{portalName}</p>
             </div>
           )}
@@ -104,7 +132,9 @@ export default function Layout({ children, currentPageName }) {
                 <span className="text-sm font-medium flex-1">{label}</span>
               )}
               {!collapsed && label === "Alertas" && activeAlerts > 0 && (
-                <Badge className="bg-red-500 text-white text-xs px-1.5 py-0 h-5">{activeAlerts}</Badge>
+                <Badge className="bg-red-500 text-white text-xs px-1.5 py-0 h-5">
+                  {activeAlerts}
+                </Badge>
               )}
             </Link>
           );
@@ -114,15 +144,17 @@ export default function Layout({ children, currentPageName }) {
       <div className="p-3 border-t border-white/10">
         {!collapsed && user && (
           <div className="px-3 py-2 mb-2">
-            <p className="text-white/80 text-sm font-medium truncate">{user.full_name || user.email}</p>
+            <p className="text-white/80 text-sm font-medium truncate">
+              {user.full_name || user.email}
+            </p>
             <p className="text-white/45 text-xs truncate">{user.email}</p>
           </div>
         )}
         <button
           onClick={async () => {
-        await supabase.auth.signOut();
-        window.location.href = "/";
-        }}
+            await supabase.auth.signOut();
+            window.location.href = "/";
+          }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/65 hover:bg-white/10 hover:text-white transition-all"
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
@@ -135,21 +167,32 @@ export default function Layout({ children, currentPageName }) {
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className={`hidden md:flex flex-col bg-gradient-to-b ${portalColor} transition-all duration-300 ${collapsed ? "w-16" : "w-60"} flex-shrink-0 relative`}>
+      <aside
+        className={`hidden md:flex flex-col bg-gradient-to-b ${portalColor} transition-all duration-300 ${collapsed ? "w-16" : "w-60"} flex-shrink-0 relative`}
+      >
         <NavContent />
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="absolute -right-3 top-20 w-6 h-6 bg-white rounded-full shadow-md flex items-center justify-center border border-slate-200 hover:bg-slate-50 transition-colors z-10"
         >
-          {collapsed ? <ChevronRight className="w-3.5 h-3.5 text-slate-600" /> : <ChevronLeft className="w-3.5 h-3.5 text-slate-600" />}
+          {collapsed ? (
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+          ) : (
+            <ChevronLeft className="w-3.5 h-3.5 text-slate-600" />
+          )}
         </button>
       </aside>
 
       {/* Mobile overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className={`relative w-64 h-full flex flex-col bg-gradient-to-b ${portalColor}`}>
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside
+            className={`relative w-64 h-full flex flex-col bg-gradient-to-b ${portalColor}`}
+          >
             <NavContent />
           </aside>
         </div>
@@ -159,19 +202,22 @@ export default function Layout({ children, currentPageName }) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile header */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200">
-          <button onClick={() => setMobileOpen(true)} className="p-1.5 rounded-lg hover:bg-slate-100">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="p-1.5 rounded-lg hover:bg-slate-100"
+          >
             <Menu className="w-5 h-5 text-slate-700" />
           </button>
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-slate-700" />
-            <span className="font-bold text-slate-800 text-sm">AppleSeed AML</span>
+            <span className="font-bold text-slate-800 text-sm">
+              AppleSeed AML
+            </span>
           </div>
           <div className="w-8" />
         </header>
 
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
 
       <style>{`
