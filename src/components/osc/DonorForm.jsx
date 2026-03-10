@@ -2,22 +2,21 @@ import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function DonorForm({ onSaved, onCancel }) {
-
   const [form, setForm] = useState({
     full_name: "",
     rfc: "",
     email: "",
     phone: "",
     donor_type: "individual",
-    status: "active"
+    status: "active",
   });
 
   const [saving, setSaving] = useState(false);
 
   function updateField(field, value) {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   }
 
@@ -26,9 +25,7 @@ export default function DonorForm({ onSaved, onCancel }) {
 
     setSaving(true);
 
-    const { error } = await supabase
-      .from("donors")
-      .insert(form);
+    const { error } = await supabase.from("donors").insert(form);
 
     setSaving(false);
 
@@ -43,13 +40,12 @@ export default function DonorForm({ onSaved, onCancel }) {
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-6">
+      <h3 className="text-lg font-semibold mb-4">Nuevo Donante</h3>
 
-      <h3 className="text-lg font-semibold mb-4">
-        Nuevo Donante
-      </h3>
-
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
+      <form
+        onSubmit={handleSubmit}
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
         <div>
           <label className="text-sm font-medium text-slate-700">
             Nombre completo *
@@ -63,9 +59,7 @@ export default function DonorForm({ onSaved, onCancel }) {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-slate-700">
-            RFC
-          </label>
+          <label className="text-sm font-medium text-slate-700">RFC</label>
           <input
             className="w-full border rounded-lg px-3 py-2"
             value={form.rfc}
@@ -74,9 +68,7 @@ export default function DonorForm({ onSaved, onCancel }) {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-slate-700">
-            Email
-          </label>
+          <label className="text-sm font-medium text-slate-700">Email</label>
           <input
             type="email"
             className="w-full border rounded-lg px-3 py-2"
@@ -86,9 +78,7 @@ export default function DonorForm({ onSaved, onCancel }) {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-slate-700">
-            Teléfono
-          </label>
+          <label className="text-sm font-medium text-slate-700">Teléfono</label>
           <input
             className="w-full border rounded-lg px-3 py-2"
             value={form.phone}
@@ -112,9 +102,7 @@ export default function DonorForm({ onSaved, onCancel }) {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-slate-700">
-            Estado
-          </label>
+          <label className="text-sm font-medium text-slate-700">Estado</label>
 
           <select
             className="w-full border rounded-lg px-3 py-2"
@@ -127,7 +115,6 @@ export default function DonorForm({ onSaved, onCancel }) {
         </div>
 
         <div className="md:col-span-2 flex justify-end gap-3 pt-4">
-
           <button
             type="button"
             onClick={onCancel}
@@ -143,11 +130,8 @@ export default function DonorForm({ onSaved, onCancel }) {
           >
             {saving ? "Guardando..." : "Guardar Donante"}
           </button>
-
         </div>
-
       </form>
-
     </div>
   );
 }

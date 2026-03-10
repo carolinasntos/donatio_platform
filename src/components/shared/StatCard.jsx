@@ -1,6 +1,13 @@
 import React from "react";
 
-export default function StatCard({ title, value, subtitle, icon: Icon, color = "blue", trend }) {
+export default function StatCard({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  color = "blue",
+  trend,
+}) {
   const colors = {
     blue: "bg-blue-50 text-blue-600 border-blue-100",
     green: "bg-emerald-50 text-emerald-600 border-emerald-100",
@@ -13,12 +20,17 @@ export default function StatCard({ title, value, subtitle, icon: Icon, color = "
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 p-6 hover:shadow-sm transition-shadow">
       <div className="flex items-start justify-between mb-4">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${colors[color]}`}>
+        <div
+          className={`w-10 h-10 rounded-xl flex items-center justify-center border ${colors[color]}`}
+        >
           {Icon && <Icon className="w-5 h-5" />}
         </div>
         {trend && (
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${trend > 0 ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'}`}>
-            {trend > 0 ? '+' : ''}{trend}%
+          <span
+            className={`text-xs font-medium px-2 py-0.5 rounded-full ${trend > 0 ? "text-emerald-700 bg-emerald-50" : "text-red-700 bg-red-50"}`}
+          >
+            {trend > 0 ? "+" : ""}
+            {trend}%
           </span>
         )}
       </div>
