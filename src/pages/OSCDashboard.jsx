@@ -23,6 +23,7 @@ export default function OSCDashboard() {
   const [cases, setCases] = useState([]);
   const [umaConfig, setUmaConfig] = useState(UMA_DEFAULT);
   const [loading, setLoading] = useState(true);
+  const ORG_ID = 3;
 
   useEffect(() => {
     loadData();
@@ -35,18 +36,21 @@ export default function OSCDashboard() {
     supabase
       .from("donors")
       .select("*")
+      .eq("organization_id", ORG_ID)
       .order("created_date", { ascending: false })
       .limit(100),
 
     supabase
       .from("donations")
       .select("*")
+      .eq("organization_id", ORG_ID)
       .order("donation_date", { ascending: false })
       .limit(500),
 
     supabase
       .from("alerts")
       .select("*")
+      .eq("organization_id", ORG_ID)
       .eq("status", "active")
       .order("created_date", { ascending: false })
       .limit(50),
@@ -54,12 +58,14 @@ export default function OSCDashboard() {
     supabase
       .from("compliance_cases")
       .select("*")
+      .eq("organization_id", ORG_ID)
       .order("created_date", { ascending: false })
       .limit(50),
 
     supabase
       .from("uma_config")
       .select("*")
+      .eq("organization_id", ORG_ID)
       .eq("is_active", true)
       .order("year", { ascending: false })
       .limit(1),

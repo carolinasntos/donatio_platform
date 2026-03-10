@@ -1,6 +1,6 @@
-# Donatio AML Platform
+# Donatio Platform
 
-Sistema web para la gestión de cumplimiento **AML / LFPIORPI** en organizaciones de la sociedad civil (OSC) que reciben donativos.
+Plataforma web para la gestión transparente de donaciones entre donadores y organizaciones de la sociedad civil, con monitoreo de cumplimiento regulatorio.
 
 La plataforma permite administrar donantes, donativos, expedientes documentales y alertas regulatorias para ayudar a las OSC a cumplir con la **Ley Federal para la Prevención e Identificación de Operaciones con Recursos de Procedencia Ilícita (LFPIORPI)** en México.
 
@@ -20,6 +20,13 @@ La plataforma permite administrar donantes, donativos, expedientes documentales 
 - **Gestión de avisos SAT**
 - **Configuración dinámica de UMAs**
 - **Chatbot AML** para consultas sobre cumplimiento
+- **Dashboard de métricas para AppleSeed**
+- - Registro de donadores y organizaciones
+- Gestión de documentos de verificación
+- Registro y monitoreo de donaciones
+- Cálculo de acumulados en periodos de 6 meses
+- Generación de alertas regulatorias
+- Dashboard de métricas para AppleSeed
 
 ---
 
@@ -55,17 +62,37 @@ Tecnologías utilizadas:
 
 # Instalación
 
-Clonar el repositorio:
-
 ```bash
-git clone https://github.com/your-repository/donatio-platform.git
-cd donatio-platform
+git git clone https://github.com/carolinasntos/donatio_platform.git #Clonar el repositorio
 
-Instalar dependencias
-npm install
+cd donatio-platform #Entrar a la carpeta del proyecto
+
+npm install #Instalar dependencias
 
 .env.local
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_public_key
+VITE_SUPABASE_ANON_KEY=sb_publishable_tKeTHzvmY_tVwsN2tT6O_Q_Q1QczR5c
 
-npm run dev
+npm run dev #Ejecutar el proyecto
+
+```
+
+---
+
+## Database
+
+Main tables:
+
+- donors
+- organizations
+- donations
+- donor_documents
+- compliance_cases
+- alerts
+
+---
+
+## API Endpoints
+
+POST /donations
+GET /organizations
+GET /alerts
