@@ -69,7 +69,7 @@ cd donatio-platform #Entrar a la carpeta del proyecto
 
 npm install #Instalar dependencias
 
-.env.local
+.env
 VITE_SUPABASE_ANON_KEY=sb_publishable_tKeTHzvmY_tVwsN2tT6O_Q_Q1QczR5c
 
 npm run dev #Ejecutar el proyecto
@@ -78,21 +78,4 @@ npm run dev #Ejecutar el proyecto
 
 ---
 
-## Database
 
-Main tables:
-
-- donors
-- organizations
-- donations
-- donor_documents
-- compliance_cases
-- alerts
-
----
-
-## API Endpoints
-
-POST /donations
-GET /organizations
-GET /alerts
